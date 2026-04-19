@@ -9,9 +9,8 @@ load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 def determine_stay_durations(cities: list[str], total_days: int, user_preferences: str) -> TripAllocation:
-    """
-    Demande à Gemini de répartir les jours de voyage selon les villes et les préférences.
-    """
+
+    # Demande à Gemini de répartir les jours de voyage selon les villes et les préférences.
     
     # Initialisation du modèle Pro, idéal pour le raisonnement et le respect des contraintes
     model = genai.GenerativeModel(
