@@ -1,23 +1,19 @@
 import os
-import google.generativeai as genai
-from google.generativeai.types import GenerationConfig
+from google import genai
+from google.genai import types
 from models import TripAllocation
 from dotenv import load_dotenv
 
 # Charge la clé API depuis le fichier .env
 load_dotenv()
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+# Initialisation du nouveau client Gemini
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 def determine_stay_durations(cities: list[str], total_days: int, user_preferences: str) -> TripAllocation:
-
-    # Demande à Gemini de répartir les jours de voyage selon les villes et les préférences.
-    
-    # Initialisation du modèle Pro, idéal pour le raisonnement et le respect des contraintes
-    model = genai.GenerativeModel(
-        model_name="gemini-1.5-pro",
-        system_instruction="Tu es un planificateur de voyage algorithmique. Ton but est d'optimiser le temps passé dans chaque ville."
-    )
-
+    """
+    Demande à Gemini de répartir les jours de voyage selon les villes et les préférences.
+    """
     prompt = f"""
     Un client veut faire un voyage de {total_days} jours.
     Il veut visiter les villes suivantes : {', '.join(cities)}.
@@ -28,16 +24,17 @@ def determine_stay_durations(cities: list[str], total_days: int, user_preference
     Prends en compte les préférences du client pour justifier la durée avec un raisonnement court et précis.
     """
 
-    # Appel à l'API en forçant le format de sortie
-    response = model.generate_content(
-        prompt,
-        generation_config=GenerationConfig(
+    # Appel à l'API avec la nouvelle syntaxe google-genai
+    response = client.models.generate_content(
+        model="gemini-1.5-pro",
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            system_instruction="Tu es un planificateur de voyage algorithmique. Ton but est d'optimiser le temps passé dans chaque ville.",
             response_mime_type="application/json",
             response_schema=TripAllocation,
-            temperature=0.2 # Température basse pour un résultat plus analytique et constant
+            temperature=0.2 # Température basse pour un résultat plus analytique
         )
     )
 
-    # Gemini renvoie le résultat sous forme de chaîne JSON brute.
-    # On utilise Pydantic pour la parser et vérifier qu'elle respecte le contrat.
+    # Validation et transformation du JSON brut en objet Python via Pydantic
     return TripAllocation.model_validate_json(response.text)
