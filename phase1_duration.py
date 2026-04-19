@@ -26,7 +26,7 @@ def determine_stay_durations(cities: list[str], total_days: int, user_preference
 
     # Appel à l'API avec la nouvelle syntaxe google-genai
     response = client.models.generate_content(
-        model="gemini-1.5-pro",
+        model="gemini-2.5-flash",
         contents=prompt,
         config=types.GenerateContentConfig(
             system_instruction="Tu es un planificateur de voyage algorithmique. Ton but est d'optimiser le temps passé dans chaque ville.",
