@@ -1,4 +1,4 @@
-from backend.database import init_db, save_price_to_db
+from database import init_db, save_price_to_db
 import random
 from datetime import datetime, timedelta
 

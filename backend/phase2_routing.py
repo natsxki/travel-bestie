@@ -67,52 +67,61 @@ def get_best_hotel(city, arrival_date, stay_duration):
             
     return best_offer
 
-def find_best_trip(city_stays, start_city, start_date_str):
-    start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
+def find_best_trip(city_stays, start_city, start_date_str=None):
+    """
+    Si start_date_str est fourni, on calcule pour cette date.
+    Sinon, on cherche la date de départ la moins chère dans les 30 prochains jours !
+    """
+    # 1. Gestion de la flexibilité temporelle
+    if start_date_str:
+        # L'utilisateur a choisi une date fixe
+        possible_start_dates = [datetime.strptime(start_date_str, "%Y-%m-%d")]
+    else:
+        # Date flexible : On crée une liste des 30 prochains jours
+        base_date = datetime.now() + timedelta(days=1) # Demain
+        possible_start_dates = [base_date + timedelta(days=i) for i in range(30)]
+        
     cities = list(city_stays.keys())
     if start_city in cities: cities.remove(start_city)
     
     best_route = None
     lowest_total_trip_cost = float('inf')
-    best_trip_details = [] # Pour stocker la facture détaillée
+    best_trip_details = []
 
-    for path in itertools.permutations(cities):
-        full_path = (start_city,) + path
-        current_total_cost = 0
-        current_date = start_date
-        trip_details = []
-        
-        for i in range(len(full_path) - 1):
-            city_a, city_b = full_path[i], full_path[i+1]
-            stay_days = city_stays[city_b]
+    # 2. La Triple Boucle (Date -> Itinéraire -> Étapes)
+    for current_start_date in possible_start_dates:
+        for path in itertools.permutations(cities):
+            full_path = (start_city,) + path
+            current_total_cost = 0
+            current_date = current_start_date
+            trip_details = []
             
-            # 1. Sélection du meilleur transport
-            transport = get_best_transport(city_a, city_b, current_date)
-            
-            # 2. Sélection du meilleur hôtel à l'arrivée
-            hotel = get_best_hotel(city_b, current_date, stay_days)
-            
-            # On ajoute au coût total de la boucle en cours
-            step_cost = transport["price"] + hotel["total_price"]
-            current_total_cost += step_cost
-            
-            # On sauvegarde les détails de cette étape
-            trip_details.append({
-                "from": city_a,
-                "to": city_b,
-                "date": current_date.strftime("%Y-%m-%d"),
-                "transport_source": transport["source"],
-                "transport_cost": transport["price"],
-                "hotel_source": hotel["source"],
-                "hotel_cost": hotel["total_price"],
-                "stay_days": stay_days
-            })
-            
-            current_date += timedelta(days=stay_days)
-            
-        if current_total_cost < lowest_total_trip_cost:
-            lowest_total_trip_cost = current_total_cost
-            best_route = full_path
-            best_trip_details = trip_details # On garde la facture du meilleur trajet
-            
+            for i in range(len(full_path) - 1):
+                city_a, city_b = full_path[i], full_path[i+1]
+                stay_days = city_stays[city_b]
+                
+                transport = get_best_transport(city_a, city_b, current_date)
+                hotel = get_best_hotel(city_b, current_date, stay_days)
+                
+                step_cost = transport["price"] + hotel["total_price"]
+                current_total_cost += step_cost
+                
+                trip_details.append({
+                    "from": city_a,
+                    "to": city_b,
+                    "date": current_date.strftime("%Y-%m-%d"),
+                    "transport_source": transport["source"],
+                    "transport_cost": transport["price"],
+                    "hotel_source": hotel["source"],
+                    "hotel_cost": hotel["total_price"],
+                    "stay_days": stay_days
+                })
+                
+                current_date += timedelta(days=stay_days)
+                
+            if current_total_cost < lowest_total_trip_cost:
+                lowest_total_trip_cost = current_total_cost
+                best_route = full_path
+                best_trip_details = trip_details
+                
     return best_route, lowest_total_trip_cost, best_trip_details

@@ -1,60 +1,65 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
-from backend.phase1_duration import determine_stay_durations
-from backend.phase2_routing import find_best_trip
+from phase1_duration import determine_stay_durations
+from phase2_routing import find_best_trip
 
 app = FastAPI()
 
-# IMPORTANT : Le CORS permet à ton React (port 3000) de parler à ton Python (port 8000)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # En prod, on mettra l'URL précise
+    allow_origins=["*"], 
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Modèles de données pour valider ce que React nous envoie
 class CityInput(BaseModel):
     name: str
     days: Optional[int] = None
 
 class OptimizeRequest(BaseModel):
     cities: List[CityInput]
-    startDate: str
-    preferences: str
+    # Les deux champs suivants deviennent Optionnels
+    startDate: Optional[str] = None
+    preferences: Optional[str] = None
 
 @app.post("/optimize")
 async def optimize_trip(request: OptimizeRequest):
-    # 1. On prépare les données pour la Phase 1
-    city_names = [c.name for c in request.cities]
+    valid_cities = [c for c in request.cities if c.name.strip() != ""]
+    if len(valid_cities) < 2:
+        raise HTTPException(status_code=400, detail="Veuillez saisir au moins 2 villes valides.")
+
+    city_names = [c.name for c in valid_cities]
     
-    # 2. Appel de l'IA (Phase 1)
-    # On pourrait ici filtrer : si l'utilisateur a déjà mis les jours, on ne demande pas à l'IA
-    trip_plan = determine_stay_durations(city_names, 12, request.preferences)
+    # --- VALEURS PAR DÉFAUT ---
+    # Si l'utilisateur n'a coché aucune préférence, on donne un profil basique à l'IA
+    ia_prompt = request.preferences if request.preferences else "Voyage équilibré, découverte classique des incontournables, budget moyen."
     
-    # On fusionne les jours forcés par l'utilisateur avec ceux de l'IA
-    final_stays = {}
-    for city in request.cities:
-        if city.days:
-            final_stays[city.name] = city.days
-        else:
-            # On cherche ce que l'IA a proposé pour cette ville
-            ia_stay = next((s for s in trip_plan.allocations if s.city_name == city.name), None)
-            final_stays[city.name] = ia_stay.recommended_days if ia_stay else 3
+    try:
+        # Phase 1 : L'IA reçoit soit les vraies préférences, soit celles par défaut
+        trip_plan = determine_stay_durations(city_names, 12, ia_prompt)
+        
+        final_stays = {}
+        for city in valid_cities:
+            if city.days and city.days > 0:
+                final_stays[city.name] = city.days
+            else:
+                ia_stay = next((s for s in trip_plan.allocations if s.city_name == city.name), None)
+                final_stays[city.name] = ia_stay.recommended_days if ia_stay else 3
 
-    # 3. Appel de l'Optimiseur (Phase 2)
-    best_order, total_price, details = find_best_trip(
-        city_stays=final_stays,
-        start_city=city_names[0],
-        start_date_str=request.startDate
-    )
+        # Phase 2 : On envoie la startDate (qui peut être None)
+        best_order, total_price, details = find_best_trip(
+            city_stays=final_stays,
+            start_city=city_names[0],
+            start_date_str=request.startDate
+        )
 
-    return {
-        "best_order": best_order,
-        "total_price": total_price,
-        "details": details
-    }
+        return {
+            "best_order": best_order,
+            "total_price": total_price,
+            "details": details
+        }
 
-# Pour lancer : uvicorn api:app --reload
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur interne : {str(e)}")

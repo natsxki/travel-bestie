@@ -1,7 +1,7 @@
 import os
 from google import genai
 from google.genai import types
-from backend.models import TripAllocation
+from models import TripAllocation
 from dotenv import load_dotenv
 
 # Charge la clé API depuis le fichier .env
