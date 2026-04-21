@@ -25,6 +25,10 @@ export default function App() {
   const [startDate, setStartDate] = useState('');
   const [selectedPrefs, setSelectedPrefs] = useState<string[]>([]);
   
+  // Nouveaux États pour l'IA Générative
+  const [totalDays, setTotalDays] = useState<number | ''>(12);
+  const [totalDestinations, setTotalDestinations] = useState<number | ''>('');
+  
   // États de l'interface
   const [loadingStep, setLoadingStep] = useState<string>(''); // Gère le texte de chargement
   const [errorMsg, setErrorMsg] = useState<string>('');
@@ -49,8 +53,8 @@ export default function App() {
 
   const runOptimization = async () => {
 
-    if (cities.filter(c => c.name.trim() !== '').length < 2) {
-      setErrorMsg("⚠️ Il faut au moins 2 destinations.");
+    if (cities.filter(c => c.name.trim() !== '').length < 2 && (!totalDestinations || totalDestinations < 2)) {
+      setErrorMsg("⚠️ Il faut au moins 2 destinations (ou demander à l'IA d'en générer).");
       return;
     }
 
@@ -58,7 +62,7 @@ export default function App() {
     setResult(null);
     
     // 2. Lancement des animations de chargement
-    setLoadingStep("🧠 Phase 1 : Analyse de votre profil par l'IA...");
+    setLoadingStep("🧠 Phase 1 : Analyse de votre profil et suggestions par l'IA...");
     
     // On simule le passage à la Phase 2 après 3 secondes pour l'UX
     const phase2Timer = setTimeout(() => {
@@ -77,7 +81,9 @@ export default function App() {
         body: JSON.stringify({
           cities: cities.map(c => ({ name: c.name, days: c.days === '' ? null : c.days })),
           startDate: startDate || null,
-          preferences: selectedPrefs.length > 0 ? selectedPrefs.join(', ') : null 
+          preferences: selectedPrefs.length > 0 ? selectedPrefs.join(', ') : null,
+          totalDays: totalDays === '' ? 12 : totalDays,
+          totalDestinations: totalDestinations === '' ? null : totalDestinations
         })
       });
 
@@ -91,7 +97,7 @@ export default function App() {
 
       setResult(data);
     } catch (err: any) {
-      setErrorMsg(`Erreur : ${err.message}`);
+      setErrorMsg(`❌ Erreur : ${err.message}`);
     } finally {
       setLoadingStep(''); // On arrête le chargement
     }
@@ -104,15 +110,43 @@ export default function App() {
       
       <div style={{ backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '10px', marginTop: '20px' }}>
         
-        {/* LA DATE */}
+        {/* LA DATE (Optionnelle) */}
         <div style={{ marginBottom: '20px' }}>
-          <h3>📅 Date de départ</h3>
+          <h3>📅 Date de départ <span style={{ fontSize: '14px', color: '#6b7280', fontWeight: 'normal' }}>(Optionnel)</span></h3>
+          <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '-10px' }}>Laissez vide pour trouver la date la moins chère du mois.</p>
           <input 
             type="date" 
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)} 
             style={{ padding: '10px', borderRadius: '5px', border: '1px solid #ccc', width: '100%' }}
           />
+        </div>
+
+        {/* LES PARAMÈTRES GLOBAUX */}
+        <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
+          <div style={{ flex: 1 }}>
+            <h3>⏳ Durée du voyage</h3>
+            <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '-10px' }}>Nombre de jours total</p>
+            <input 
+              type="number" 
+              min="2"
+              value={totalDays}
+              onChange={(e) => setTotalDays(e.target.value === '' ? '' : parseInt(e.target.value))} 
+              style={{ padding: '10px', borderRadius: '5px', border: '1px solid #ccc', width: '100%' }}
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <h3>🎯 Nombre d'étapes <span style={{ fontSize: '14px', color: '#6b7280', fontWeight: 'normal' }}>(Optionnel)</span></h3>
+            <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '-10px' }}>Si &gt; à vos villes, l'IA complète</p>
+            <input 
+              type="number" 
+              min="2"
+              placeholder="Auto"
+              value={totalDestinations}
+              onChange={(e) => setTotalDestinations(e.target.value === '' ? '' : parseInt(e.target.value))} 
+              style={{ padding: '10px', borderRadius: '5px', border: '1px solid #ccc', width: '100%' }}
+            />
+          </div>
         </div>
 
         {/* LE PROFIL (Cases à cocher) */}
@@ -142,11 +176,10 @@ export default function App() {
                 placeholder="Ex: Berlin" 
                 value={city.name} 
                 onChange={(e) => {
-                const newCities = [...cities];
-                // On copie d'abord la ville existante, puis on écrase son 'name'
-                newCities[index] = { ...newCities[index], name: e.target.value }; 
-                setCities(newCities);
-              }}
+                  const newCities = [...cities];
+                  newCities[index] = { ...newCities[index], name: e.target.value }; 
+                  setCities(newCities);
+                }}
                 style={{ flex: 2, padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }}
               />
               <input 
@@ -154,11 +187,10 @@ export default function App() {
                 placeholder="Jours (Auto si vide)" 
                 value={city.days}
                 onChange={(e) => {
-                const newCities = [...cities];
-                // On copie d'abord la ville existante, puis on écrase ses 'days'
-                newCities[index] = { ...newCities[index], days: e.target.value === '' ? '' : parseInt(e.target.value) };
-                setCities(newCities);
-              }}
+                  const newCities = [...cities];
+                  newCities[index] = { ...newCities[index], days: e.target.value === '' ? '' : parseInt(e.target.value) };
+                  setCities(newCities);
+                }}
                 style={{ flex: 1, padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }}
               />
               {cities.length > 2 && (
@@ -181,7 +213,7 @@ export default function App() {
           disabled={loadingStep !== ''}
           style={{ width: '100%', padding: '15px', background: loadingStep ? '#9ca3af' : '#2563eb', color: 'white', border: 'none', borderRadius: '8px', fontSize: '18px', fontWeight: 'bold', cursor: loadingStep ? 'not-allowed' : 'pointer' }}
         >
-          {loadingStep ? 'Patientez...' : 'Générer mon Itinéraire'}
+          {loadingStep ? 'Patientez...' : '🚀 Générer mon Itinéraire'}
         </button>
 
         {/* ANIMATION DE CHARGEMENT */}
@@ -200,6 +232,13 @@ export default function App() {
           <h3 style={{ margin: '0' }}>Prix total estimé : {result.total_price.toFixed(2)} €</h3>
           <p style={{ fontSize: '18px', fontWeight: 'bold' }}>🗺️ Trajet : {result.best_order.join(' ➡️ ')}</p>
           
+          {/* NOUVEAU : Affichage des villes suggérées par l'IA */}
+          {result.suggested_cities && result.suggested_cities.length > 0 && (
+            <div style={{ marginTop: '10px', padding: '10px', background: '#e0f2fe', borderRadius: '5px', border: '1px solid #bae6fd' }}>
+              <strong>✨ Villes ajoutées par l'IA :</strong> {result.suggested_cities.join(', ')}
+            </div>
+          )}
+
           <div style={{ marginTop: '20px' }}>
             {result.details.map((step: any, idx: number) => (
               <div key={idx} style={{ background: 'white', padding: '15px', borderRadius: '8px', marginBottom: '10px', borderLeft: '4px solid #3b82f6' }}>
