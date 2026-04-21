@@ -1,6 +1,6 @@
-from phase1_duration import determine_stay_durations
+from backend.phase1_duration import determine_stay_durations
 # On importe la bonne fonction de la Phase 2 !
-from phase2_routing import find_best_trip 
+from backend.phase2_routing import find_best_trip 
 
 def main():
     target_cities = ["Paris", "Amsterdam", "Bruges", "Berlin"]
