@@ -67,53 +67,68 @@ def get_best_hotel(city, arrival_date, stay_duration):
             
     return best_offer
 
-def find_best_trip(city_stays, start_city, start_date_str=None):
-    """
-    Si start_date_str est fourni, on calcule pour cette date.
-    Sinon, on cherche la date de départ la moins chère dans les 30 prochains jours !
-    """
-    # 1. Gestion de la flexibilité temporelle
+def find_best_trip(city_stays, start_city, start_date_str=None, is_round_trip=False, keep_order=False, include_transport=True, include_hotel=True):
+    from datetime import datetime, timedelta
+    import itertools
+    
     if start_date_str:
-        # L'utilisateur a choisi une date fixe
         possible_start_dates = [datetime.strptime(start_date_str, "%Y-%m-%d")]
     else:
-        # Date flexible : On crée une liste des 30 prochains jours
-        base_date = datetime.now() + timedelta(days=1) # Demain
+        base_date = datetime.now() + timedelta(days=1)
         possible_start_dates = [base_date + timedelta(days=i) for i in range(30)]
         
-    cities = list(city_stays.keys())
-    if start_city in cities: cities.remove(start_city)
+    cities = list(city_stays.keys()) # Préserve l'ordre venant du Frontend
+    if start_city in cities: 
+        cities.remove(start_city)
     
     best_route = None
     lowest_total_trip_cost = float('inf')
     best_trip_details = []
 
-    # 2. La Triple Boucle (Date -> Itinéraire -> Étapes)
     for current_start_date in possible_start_dates:
-        for path in itertools.permutations(cities):
+        # L'OPTION MAGIQUE : On force un seul chemin ou on teste tout !
+        if keep_order:
+            paths_to_evaluate = [tuple(cities)]
+        else:
+            paths_to_evaluate = list(itertools.permutations(cities))
+            
+        for path in paths_to_evaluate:
             full_path = (start_city,) + path
+            if is_round_trip:
+                full_path = full_path + (start_city,)
+                
             current_total_cost = 0
             current_date = current_start_date
             trip_details = []
             
             for i in range(len(full_path) - 1):
                 city_a, city_b = full_path[i], full_path[i+1]
-                stay_days = city_stays[city_b]
                 
-                transport = get_best_transport(city_a, city_b, current_date)
-                hotel = get_best_hotel(city_b, current_date, stay_days)
+                is_return_leg = (is_round_trip and i == len(full_path) - 2)
+                stay_days = 0 if is_return_leg else city_stays[city_b]
+                
+                # OPTIONS TRANSPORT ET HÔTEL
+                if include_transport:
+                    transport = get_best_transport(city_a, city_b, current_date)
+                else:
+                    transport = {"source": "Option désactivée", "price": 0}
+                    
+                if include_hotel:
+                    if is_return_leg:
+                        hotel = {"source": "Maison (Fin)", "total_price": 0}
+                    else:
+                        hotel = get_best_hotel(city_b, current_date, stay_days)
+                else:
+                    hotel = {"source": "Option désactivée", "total_price": 0}
                 
                 step_cost = transport["price"] + hotel["total_price"]
                 current_total_cost += step_cost
                 
                 trip_details.append({
-                    "from": city_a,
-                    "to": city_b,
+                    "from": city_a, "to": city_b,
                     "date": current_date.strftime("%Y-%m-%d"),
-                    "transport_source": transport["source"],
-                    "transport_cost": transport["price"],
-                    "hotel_source": hotel["source"],
-                    "hotel_cost": hotel["total_price"],
+                    "transport_source": transport["source"], "transport_cost": transport["price"],
+                    "hotel_source": hotel["source"], "hotel_cost": hotel["total_price"],
                     "stay_days": stay_days
                 })
                 
