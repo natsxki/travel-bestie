@@ -1,0 +1,9 @@
+CREATE TABLE transport_prices (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    city_a TEXT,           -- Ville de départ
+    city_b TEXT,           -- Ville d'arrivée
+    travel_date TEXT,      -- Date du trajet (YYYY-MM-DD)
+    source TEXT,           -- Site d'où vient l'info (SNCF, Flixbus...)
+    price REAL,            -- Prix trouvé
+    scraped_at REAL        -- Timestamp Unix du moment du scrap
+);
