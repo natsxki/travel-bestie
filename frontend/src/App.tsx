@@ -8,12 +8,12 @@ interface City {
 }
 
 const PREFERENCES_OPTIONS = [
-  "🏛️ Culture & Histoire",
-  "🎉 Vie nocturne & Fête",
-  "🌲 Nature & Balades",
-  "💰 Budget Serré",
-  "📸 Lieux ultra-photogéniques",
-  "🍔 Gastronomie"
+  "Culture & Histoire",
+  "Vie nocturne & Fête",
+  "Nature & Balades",
+  "Budget Serré",
+  "Lieux ultra-photogéniques",
+  "Gastronomie"
 ];
 
 export default function App() {
@@ -62,14 +62,14 @@ export default function App() {
     setResult(null);
     
     // 2. Lancement des animations de chargement
-    setLoadingStep("🧠 Phase 1 : Analyse de votre profil et suggestions par l'IA...");
+    setLoadingStep("Phase 1 : Analyse de votre profil et suggestions par l'IA...");
     
     // On simule le passage à la Phase 2 après 3 secondes pour l'UX
     const phase2Timer = setTimeout(() => {
       setLoadingStep(
         startDate 
-          ? "🚂 Phase 2 : Recherche des meilleurs prix et calcul du trajet..." 
-          : "📅 Phase 2 : Recherche de la date la moins chère (Scan sur 30 jours)..."
+          ? "Phase 2 : Recherche des meilleurs prix et calcul du trajet..." 
+          : "Phase 2 : Recherche de la date la moins chère (Scan sur 30 jours)..."
       );
     }, 3000);
 
@@ -97,7 +97,7 @@ export default function App() {
 
       setResult(data);
     } catch (err: any) {
-      setErrorMsg(`❌ Erreur : ${err.message}`);
+      setErrorMsg(`Erreur : ${err.message}`);
     } finally {
       setLoadingStep(''); // On arrête le chargement
     }
@@ -106,13 +106,13 @@ export default function App() {
   // --- RENDU VISUEL (CSS en ligne pour faire simple) ---
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', padding: '30px', fontFamily: 'system-ui, sans-serif' }}>
-      <h1 style={{ textAlign: 'center' }}>🌍 AI Travel Optimizer</h1>
+      <h1 style={{ textAlign: 'center' }}>Travel Optimizer</h1>
       
       <div style={{ backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '10px', marginTop: '20px' }}>
         
         {/* LA DATE (Optionnelle) */}
         <div style={{ marginBottom: '20px' }}>
-          <h3>📅 Date de départ <span style={{ fontSize: '14px', color: '#6b7280', fontWeight: 'normal' }}>(Optionnel)</span></h3>
+          <h3>Date de départ <span style={{ fontSize: '14px', color: '#6b7280', fontWeight: 'normal' }}>(Optionnel)</span></h3>
           <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '-10px' }}>Laissez vide pour trouver la date la moins chère du mois.</p>
           <input 
             type="date" 
@@ -169,7 +169,7 @@ export default function App() {
         
         {/* LES VILLES */}
         <div style={{ marginBottom: '20px' }}>
-          <h3>📍 Vos destinations</h3>
+          <h3>Vos destinations</h3>
           {cities.map((city, index) => (
             <div key={city.id} style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
               <input 
@@ -213,7 +213,7 @@ export default function App() {
           disabled={loadingStep !== ''}
           style={{ width: '100%', padding: '15px', background: loadingStep ? '#9ca3af' : '#2563eb', color: 'white', border: 'none', borderRadius: '8px', fontSize: '18px', fontWeight: 'bold', cursor: loadingStep ? 'not-allowed' : 'pointer' }}
         >
-          {loadingStep ? 'Patientez...' : '🚀 Générer mon Itinéraire'}
+          {loadingStep ? 'Patientez...' : 'Générer mon Itinéraire'}
         </button>
 
         {/* ANIMATION DE CHARGEMENT */}
@@ -228,9 +228,9 @@ export default function App() {
       {/* AFFICHAGE DES RÉSULTATS */}
       {result && (
         <div style={{ marginTop: '30px', padding: '20px', border: '2px solid #22c55e', borderRadius: '10px', background: '#f0fdf4' }}>
-          <h2 style={{ color: '#166534', margin: '0 0 10px 0' }}>✅ Voyage Optimisé !</h2>
+          <h2 style={{ color: '#166534', margin: '0 0 10px 0' }}>Voyage Optimisé !</h2>
           <h3 style={{ margin: '0' }}>Prix total estimé : {result.total_price.toFixed(2)} €</h3>
-          <p style={{ fontSize: '18px', fontWeight: 'bold' }}>🗺️ Trajet : {result.best_order.join(' ➡️ ')}</p>
+          <p style={{ fontSize: '18px', fontWeight: 'bold' }}>Trajet : {result.best_order.join(' ➡️ ')}</p>
           
           {/* NOUVEAU : Affichage des villes suggérées par l'IA */}
           {result.suggested_cities && result.suggested_cities.length > 0 && (
@@ -242,9 +242,9 @@ export default function App() {
           <div style={{ marginTop: '20px' }}>
             {result.details.map((step: any, idx: number) => (
               <div key={idx} style={{ background: 'white', padding: '15px', borderRadius: '8px', marginBottom: '10px', borderLeft: '4px solid #3b82f6' }}>
-                <strong>📅 Le {step.date} :</strong> Voyage vers {step.to}
-                <br />🚆 {step.transport_source} ({step.transport_cost} €)
-                <br />🏨 {step.hotel_source} - {step.stay_days} nuits ({step.hotel_cost} €)
+                <strong>Le {step.date} :</strong> Voyage vers {step.to}
+                <br />{step.transport_source} ({step.transport_cost} €)
+                <br />{step.hotel_source} - {step.stay_days} nuits ({step.hotel_cost} €)
               </div>
             ))}
           </div>
